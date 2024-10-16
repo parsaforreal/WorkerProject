@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35327.3
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntervalWorkerService", "IntervalWorkerService.csproj", "{89103875-EB77-4CB2-9DBC-E9F768E0676D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{89103875-EB77-4CB2-9DBC-E9F768E0676D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{89103875-EB77-4CB2-9DBC-E9F768E0676D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{89103875-EB77-4CB2-9DBC-E9F768E0676D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{89103875-EB77-4CB2-9DBC-E9F768E0676D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A5D1885E-1EA4-44F3-8CFE-583067F8E8C5}
+	EndGlobalSection
+EndGlobal
