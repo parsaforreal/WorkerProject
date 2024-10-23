@@ -10,6 +10,10 @@ namespace IntervalWorkerService.Models
     {
         public string? fact { get; set; }
         public int length { get; set; }
+        public override string ToString()
+        {
+            return $"Fact: {fact}, Length: {length}";
+        }
     }
 }
 

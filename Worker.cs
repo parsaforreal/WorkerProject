@@ -1,10 +1,5 @@
-using IntervalCalls.Server;
 using IntervalWorkerService.Models;
-using Microsoft.Extensions.Configuration;
-using System.Diagnostics;
 using System.Net;
-using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -19,6 +14,8 @@ namespace IntervalWorkerService
         private string _refreshToken;
         private string _email;
         private string _password;
+        private string _loginURL = "http://localhost:5163/Identity/Account/Login";
+        private string _requestURL = "http://localhost:5163/Admin/Payment/Check";
 
         public Worker(ILogger<Worker> logger, HttpClient httpClient, IConfiguration configuration)
         {
@@ -40,100 +37,47 @@ namespace IntervalWorkerService
                     // If access or refresh tokens are null or empty, perform login
                     await LoginAndGetTokensAsync();
                 }
+               
                 // Set the access token in the request header
-                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
-                var response = await _httpClient.GetAsync("http://localhost:5161/WeatherForecast");
+                var response = await _httpClient.GetAsync(_requestURL);
 
-                if (response.StatusCode == HttpStatusCode.Unauthorized)
+
+                var responseJson = await response.Content.ReadAsStringAsync();
+                var responseObject = JsonSerializer.Deserialize<MessageCode>(responseJson);
+
+                if (responseObject != null)
                 {
-                    // If Unauthorized response, try refreshing the tokens
-                    _logger.LogInformation("Refreshing token!");
-                    await RefreshTokenAsync();
-                    response = await _httpClient.GetAsync("http://localhost:5161/WeatherForecast");
-
-                    if (response.StatusCode == HttpStatusCode.Unauthorized)
-                    {
-                        // If still Unauthorized, perform login again
-                        await LoginAndGetTokensAsync();
-                        response = await _httpClient.GetAsync("http://localhost:5161/WeatherForecast");
-                    }
-                }
-
-                var weatherJson = await response.Content.ReadAsStringAsync();
-                var weatherObject = JsonSerializer.Deserialize<WeatherForecast>(weatherJson);
-
-                if (weatherObject != null)
-                {
-                    _logger.LogInformation("Weather: {0}", weatherObject.ToString());
+                    _logger.LogInformation(@"Payment check: {0}", responseObject.ToString());
                 }
                 else
                 {
-                    _logger.LogInformation("Weather service is down!");
+                    _logger.LogInformation("Payment service is down!");
                 }
 
-                await Task.Delay(50000, stoppingToken); // Wait for 5 seconds
+                await Task.Delay(5000, stoppingToken); // Wait for 5 seconds
             }
         }
 
-        private async Task RefreshTokenAsync()
-        {
-            Debug.WriteLine("Refreshing token!");
-            var refreshToken = _refreshToken;
-
-            var refreshRequest = new
-            {
-                refreshToken
-            };
-
-            var jsonContent = JsonSerializer.Serialize(refreshRequest);
-
-            var refreshResponse = await _httpClient.PostAsync("http://localhost:5161/refresh", new StringContent(jsonContent, Encoding.UTF8, "application/json"));
-
-            if (refreshResponse.IsSuccessStatusCode)
-            {
-                var refreshJson = await refreshResponse.Content.ReadAsStringAsync();
-
-                try
-                {
-                    var refreshResult = JsonSerializer.Deserialize<Response>(refreshJson);
-
-                    _accessToken = refreshResult.accessToken;
-                    _refreshToken = refreshResult.refreshToken;
-                }
-                catch (JsonException ex)
-                {
-                    _logger.LogError(ex, "Error deserializing JSON response in RefreshTokenAsync");
-                }
-            }
-            else
-            {
-                _logger.LogError("Failed to refresh tokens. Status code: {0}", refreshResponse.StatusCode);
-            }
-        }
 
         private async Task LoginAndGetTokensAsync()
         {
-            Debug.WriteLine("Logging In!");
-            var loginRequest = new
+            var content = new FormUrlEncodedContent(new Dictionary<string, string>
             {
-                email = _email,
-                password = _password
-            };
+                { "Input.Email", "parsa@parsa.com" },
+                { "Input.Password", "P@rs6!" },
+                { "Input.RememberMe", "false" }
+            });
+            var loginResponse = await _httpClient.PostAsync(_loginURL, content);
 
-            var jsonContent = JsonSerializer.Serialize(loginRequest);
-
-            var loginResponse = await _httpClient.PostAsync("http://localhost:5161/login", new StringContent(jsonContent, Encoding.UTF8, "application/json"));
-
-            if (loginResponse.IsSuccessStatusCode)
+            if (loginResponse.StatusCode == HttpStatusCode.Found)
             {
                 var loginJson = await loginResponse.Content.ReadAsStringAsync();
 
                 try
                 {
-                    var loginResult = JsonSerializer.Deserialize<Response>(loginJson);
-
-                    _accessToken = loginResult.accessToken;
-                    _refreshToken = loginResult.refreshToken;
+                    var loginResult = JsonSerializer.Deserialize<CookieResponse>(loginJson);
+                    var cookie = loginResult?._RequestVerificationToken ?? "";
+                    _logger.LogInformation(cookie);
                 }
                 catch (JsonException ex)
                 {
@@ -145,14 +89,14 @@ namespace IntervalWorkerService
                 _logger.LogError("Failed to login. Status code: {0}", loginResponse.StatusCode);
             }
         }
-    }
+        public class TokenResponse
+        {
+            [JsonPropertyName("accessToken")]
+            public string AccessToken { get; set; }
 
-    public class TokenResponse
-    {
-        [JsonPropertyName("accessToken")]
-        public string AccessToken { get; set; }
-
-        [JsonPropertyName("refreshToken")]
-        public string RefreshToken { get; set; }
-    }
+            [JsonPropertyName("refreshToken")]
+            public string RefreshToken { get; set; }
+        }
+    }    
 }
+
